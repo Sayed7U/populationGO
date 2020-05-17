@@ -7,15 +7,26 @@ import (
 	"github.com/jszwec/csvutil"
 	"os"
 	"encoding/csv"
-	"strings"
+	"bufio"
+	"github.com/dustin/go-humanize"
+	"randomwalk"
 )
 
 func main() {
-	population := createPop(50)
+	var popN int
+	fmt.Println("Enter size of population: ")
+	fmt.Scanln(&popN)
+	population := createPop(popN)
 	fmt.Println(population)
 	fmt.Println("")
 	fmt.Println("The BMI of the current population is", 
 		bmiPop(population))
+	fmt.Println("The average age of the population is", 
+		averageAge(population))
+	fmt.Printf("The average salary of the population is $%s \n", 
+		humanize.Commaf(averageSalary(population)))
+	popWalk(population)
+	fmt.Println(filterNamePop(population, "Ariana"))
 }
 
 type person struct{
@@ -25,12 +36,36 @@ type person struct{
 	height int
 	weight float32
 	occupation string
+	x int
+	y int
 }
 
 func (p *person) talk() string {
 	return string ("Hi, my name is " + p.name)
 }
+func (p *person) salary() int {
+	if p.occupation == "doctor" {
+		return 100000
+	}
+	if p.occupation == "student" {
+		return 0
+	}
+	if p.occupation == "finance" {
+		return 60000
+	}
+	if p.occupation == "engineer" {
+		return 50000
+	} 
+	return 25000
+}
 
+func (p *person) walk() (int, int) {
+	dx, dy := randomwalk.Walk(10)
+	p.x += dx
+	p.y += dy
+	// fmt.Printf("x = %v, y = %v \n",p.x,p.y)
+	return p.x,p.y
+}
 
 func newPerson() person {
 	uh := 190 //upper height in cm
@@ -40,7 +75,8 @@ func newPerson() person {
 	genders := []string{"Male","Female","Other"}
 	occupations := []string{"student","doctor","nurse","barista","finance",
 	"teacher","engineer","marketing"}
-	mNames := [] string{"Alex","Eddy","Mo","Fahim","Alexio","Roberto", "Daniel"}
+	mNames := [] string{"Alex","Eddy","Mo","Fahim","Alexio","Roberto", 
+	"Daniel", "Ishaq"}
 	fNames := [] string{"Tham", "Alexus", "Ariana", "Rebecca", "Maryam","Jo"}
 	chosenGender := genders[rand.Intn(3)]
 	var chosenName string
@@ -58,7 +94,8 @@ func newPerson() person {
 	age: rand.Intn(70), 
 	height: rand.Intn(uh - lh) + lh, 
 	weight: rand.Float32()*(float32(uw-lw)) + float32(lw),
-	occupation: occupations[rand.Intn(len(occupations))]}
+	occupation: occupations[rand.Intn(len(occupations))],
+	x: 0, y: 0}
 	return p
 
 }
@@ -66,7 +103,7 @@ func createPop(size int) []person {
 	pop := [] person {}
 
 	me := person{name:"Sayed", gender: "Male",age: 21, height: 161, weight: 61.4,
-	occupation: "student"}
+	occupation: "student", x: 0, y: 0}
 	pop = append(pop,me)
 
 	for i:=1; i<size; i++{
@@ -85,16 +122,51 @@ func bmiPop(population []person) float64 {
 	return bmi/float64(len(population))
 }
 
+func averageAge(population []person) float64 {
+	run := 0.0
+	for i := range population {
+		run += float64(population[i].age)
+	}
+	return run/float64(len(population))
+}
+
+func averageSalary(population []person) float64 {
+	run := 0.0
+	for i := range population {
+		run += float64(population[i].salary())
+	}
+	return run/float64(len(population))
+}
+
+func popWalk(population []person) {
+	for i := range population {
+		population[i].walk()
+	}
+}
+
+func filterNamePop(population[] person, name string) [] person{
+	var retPop []person
+	for i := range(population) {
+		if population[i].name == name {
+			retPop = append(retPop, population[i])
+		}
+	} 
+	return retPop
+}
+
 func createPopCSV(population []person) {
 	rows, err := csvutil.Marshal(population)
 	if err != nil {
 		fmt.Println("Error writing csv:", err)
 	}
-	// fmt.Println(rows)
+	fmt.Println(rows)
 	csvFile, err := os.Create("population.csv")
-	w := csv.NewWriter(csvFile)
-	w.Write(strings.Split(string(rows)," "))
+	w := bufio.NewWriter(csvFile)
+	_, err = w.Write(rows)
 	w.Flush()
+	// w := csv.NewWriter(csvFile)
+	// w.Write(rows)
+	// w.Flush()
 
 }
 func createCSV() {
@@ -108,24 +180,3 @@ func createCSV() {
 	w.Flush()
 
 }
-// func toCSVFile(population []person) {
-// 	w := csv.NewWriter(os.Stdout)
-
-// 	for _, person := range population {
-// 			headers := []string {"name",
-// 	"gender",
-// 	"age",
-// 	"height",
-// 	"weight",
-// 	"occupation"}
-// 		if err := w.Write(headers); err != nil{
-// 			log.Fatalln("Error writing to csv:", err)
-// 		}
-// 	}
-
-// 	w.Flush()
-
-// 	if err := w.Error(); err != nil {
-// 		log.Fatal(err)
-// 	}
-// }

@@ -11,7 +11,6 @@ import (
 	"github.com/dustin/go-humanize"
 	"randomwalk"
 )
-
 func main() {
 	var popN int
 	fmt.Println("Enter size of population: ")
@@ -26,45 +25,52 @@ func main() {
 	fmt.Printf("The average salary of the population is $%s \n", 
 		humanize.Commaf(averageSalary(population)))
 	popWalk(population)
-	fmt.Println(filterNamePop(population, "Ariana"))
+	population[1].takeDamage(5.2)
+	fmt.Println(population[1].Health)
+	createPopCSV(population)
 }
 
 type person struct{
-	name string
-	gender string
-	age int
-	height int
-	weight float32
-	occupation string
-	x int
-	y int
+	Name string
+	Gender string
+	Age int
+	Height int
+	Weight float32
+	Occupation string
+	X int
+	Y int
+	Health float32
 }
 
 func (p *person) talk() string {
-	return string ("Hi, my name is " + p.name)
+	return string ("Hi, my name is " + p.Name)
 }
 func (p *person) salary() int {
-	if p.occupation == "doctor" {
+	if p.Occupation == "doctor" {
 		return 100000
 	}
-	if p.occupation == "student" {
+	if p.Occupation == "student" {
 		return 0
 	}
-	if p.occupation == "finance" {
+	if p.Occupation == "finance" {
 		return 60000
 	}
-	if p.occupation == "engineer" {
+	if p.Occupation == "engineer" {
 		return 50000
 	} 
 	return 25000
 }
 
-func (p *person) walk() (int, int) {
+func (p *person) takeDamage(hit float32) {
+	p.Health -= hit
+}
+
+func (p *person) Walk() (int, int) {
 	dx, dy := randomwalk.Walk(10)
-	p.x += dx
-	p.y += dy
+	p.X += dx
+	p.Y += dy
 	// fmt.Printf("x = %v, y = %v \n",p.x,p.y)
-	return p.x,p.y
+	return p.X,p.Y
 }
 
 func newPerson() person {
@@ -89,21 +95,21 @@ func newPerson() person {
 		allNames = append(mNames,fNames...)
 		chosenName = allNames[rand.Intn(len(allNames))]
 	}
-	p := person{name:chosenName,
-	gender: chosenGender,
-	age: rand.Intn(70), 
-	height: rand.Intn(uh - lh) + lh, 
-	weight: rand.Float32()*(float32(uw-lw)) + float32(lw),
-	occupation: occupations[rand.Intn(len(occupations))],
-	x: 0, y: 0}
+	p := person{Name:chosenName,
+	Gender: chosenGender,
+	Age: rand.Intn(70), 
+	Height: rand.Intn(uh - lh) + lh, 
+	Weight: rand.Float32()*(float32(uw-lw)) + float32(lw),
+	Occupation: occupations[rand.Intn(len(occupations))],
+	X: 0, Y: 0, Health: 100.0}
 	return p
 
 }
 func createPop(size int) []person {
 	pop := [] person {}
 
-	me := person{name:"Sayed", gender: "Male",age: 21, height: 161, weight: 61.4,
-	occupation: "student", x: 0, y: 0}
+	me := person{Name:"Sayed", Gender: "Male",Age: 21,Height: 161, Weight: 61.4,
+	Occupation: "student", X: 0, Y: 0, Health: 100.0}
 	pop = append(pop,me)
 
 	for i:=1; i<size; i++{
@@ -115,8 +121,8 @@ func createPop(size int) []person {
 func bmiPop(population []person) float64 {
 	bmi := 0.0
 	for i := range population {
-		w := float64(population[i].weight)
-		h := float64(population[i].height)/100
+		w := float64(population[i].Weight)
+		h := float64(population[i].Height)/100
 		bmi += w/(math.Pow(2,h))
 	}
 	return bmi/float64(len(population))
@@ -125,7 +131,7 @@ func bmiPop(population []person) float64 {
 func averageAge(population []person) float64 {
 	run := 0.0
 	for i := range population {
-		run += float64(population[i].age)
+		run += float64(population[i].Age)
 	}
 	return run/float64(len(population))
 }
@@ -140,14 +146,13 @@ func averageSalary(population []person) float64 {
 
 func popWalk(population []person) {
 	for i := range population {
-		population[i].walk()
+		population[i].Walk()
 	}
 }
-
 func filterNamePop(population[] person, name string) [] person{
 	var retPop []person
 	for i := range(population) {
-		if population[i].name == name {
+		if population[i].Name == name {
 			retPop = append(retPop, population[i])
 		}
 	} 
@@ -159,7 +164,6 @@ func createPopCSV(population []person) {
 	if err != nil {
 		fmt.Println("Error writing csv:", err)
 	}
-	fmt.Println(rows)
 	csvFile, err := os.Create("population.csv")
 	w := bufio.NewWriter(csvFile)
 	_, err = w.Write(rows)
